@@ -18,10 +18,9 @@ function (VertexShader, FragmentShader, Noise, OrbitControls) {
 
     function init() {
 
-        camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 300 );
-        camera.position.x = 0;
-        camera.position.y = -1;
-        camera.position.z = 0;
+        camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 1000 );
+        camera.position.set(0,10,0);
+        camera.lookAt(new THREE.Vector3(100,0,0));
 
         scene = new THREE.Scene();
 
@@ -45,7 +44,6 @@ function (VertexShader, FragmentShader, Noise, OrbitControls) {
 
         waterMesh = new THREE.Mesh( waterGeometry, waterMaterial );
         waterMesh.rotation.x = Math.PI*3/2;
-        waterMesh.position.y -= 1.5;
         scene.add( waterMesh );
 
         /**
@@ -82,6 +80,27 @@ function (VertexShader, FragmentShader, Noise, OrbitControls) {
 
         document.body.appendChild( renderer.domElement );
 
+        var flipCam = function (e) {
+            if(e.which == '32') {
+
+                var currentUp = new THREE.Vector3(0, 1, 0);
+                currentUp.applyQuaternion( camera.quaternion );
+
+                camera.up.set(
+                    currentUp.x,
+                    -currentUp.y,
+                    currentUp.z
+                );
+                camera.position.set(
+                    camera.position.x,
+                    -camera.position.y,
+                    camera.position.z
+                );
+
+                camera.lookAt(new THREE.Vector3(100,0,0));
+            }
+        }
+        document.addEventListener("keydown", flipCam, false);
     }
 
     function animate() {
