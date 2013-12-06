@@ -1,14 +1,15 @@
 require([
-    "../libs/text!../shaders/vertex-shader.glsl",
-    "../libs/text!../shaders/fragment-shader.glsl",
-    "../libs/text!../shaders/simplex-noise.glsl"
+    "../libs/text!../shaders/water-vertex-shader.glsl",
+    "../libs/text!../shaders/water-fragment-shader.glsl",
+    "../libs/text!../shaders/simplex-noise.glsl",
+    "../libs/orbit-controls"
 ],
 
-function (VertexShader, FragmentShader, Noise) {
+function (VertexShader, FragmentShader, Noise, OrbitControls) {
 
     "use strict";
 
-    var camera, scene, renderer;
+    var camera, controls, scene, renderer;
     var waterGeometry, waterMaterial, waterMesh, waterUniforms;
     var skyBoxGeometry, skyBoxMaterial, skyBoxMesh;
 
@@ -17,19 +18,17 @@ function (VertexShader, FragmentShader, Noise) {
 
     function init() {
 
-        camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 100 );
-        camera.position.z = 5;
+        camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 300 );
+        camera.position.x = 0;
+        camera.position.y = -1;
+        camera.position.z = 0;
 
         scene = new THREE.Scene();
 
         /**
          * Water
          */
-
-        waterGeometry = new THREE.PlaneGeometry(10, 5, 1, 1);
-
-        // console.log(VertexShader);
-        // console.log(FragmentShader);
+        waterGeometry = new THREE.PlaneGeometry(200, 200, 1, 1);
         
         waterUniforms = {
             time: { type: 'f', value: 1.0 }
@@ -45,47 +44,41 @@ function (VertexShader, FragmentShader, Noise) {
         // waterMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000, wireframe: true } );
 
         waterMesh = new THREE.Mesh( waterGeometry, waterMaterial );
-        waterMesh.rotation.x += 200.0;
+        waterMesh.rotation.x = Math.PI*3/2;
+        waterMesh.position.y -= 1.5;
         scene.add( waterMesh );
 
         /**
          * SkyBox
          */
         
-        // var imagePrefix = "images/mountains-";
-        // var directions  = ["xpos", "xneg", "ypos", "yneg", "zpos", "zneg"];
-        // var imageSuffix = ".jpg";
-        // var skyGeometry = new THREE.CubeGeometry( 10000, 10000, 10000 );  
+        var imagePrefix = "textures/";
+        var directions  = ["posx", "negx", "posy", "negy", "posz", "negz"];
+        var imageSuffix = ".jpg";
+        var skyBoxGeometry = new THREE.CubeGeometry( 200, 200, 200 );
         
-        // var imageURLs = [];
-        // for (var i = 0; i < 6; i++)
-        //     imageURLs.push( imagePrefix + directions[i] + imageSuffix );
-        // var textureCube = THREE.ImageUtils.loadTextureCube( imageURLs );
-        // var shader = THREE.ShaderLib[ "cube" ];
-        // shader.uniforms[ "tCube" ].value = textureCube;
-        // var skyMaterial = new THREE.ShaderMaterial( {
-        //     fragmentShader: shader.fragmentShader,
-        //     vertexShader: shader.vertexShader,
-        //     uniforms: shader.uniforms,
-        //     depthWrite: false,
-        //     side: THREE.BackSide
-        // } );
-
-        skyBoxGeometry = new THREE.CubeGeometry(2, 2, 2, 1, 1, 1);
-
-        skyBoxMaterial = new THREE.MeshLambertMaterial({
-            map: THREE.ImageUtils.loadTexture("skybox_texture.jpg")
-        });
-
-        // skyBoxMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000, wireframe: true } );
+        var imageURLs = [];
+        for (var i = 0; i < 6; i++)
+            imageURLs.push( imagePrefix + directions[i] + imageSuffix );
+        var textureCube = THREE.ImageUtils.loadTextureCube( imageURLs );
+        var skyBoxShader = THREE.ShaderLib[ "cube" ];
+        skyBoxShader.uniforms[ "tCube" ].value = textureCube;
+        var skyBoxMaterial = new THREE.ShaderMaterial( {
+            fragmentShader: skyBoxShader.fragmentShader,
+            vertexShader: skyBoxShader.vertexShader,
+            uniforms: skyBoxShader.uniforms,
+            depthWrite: false,
+            side: THREE.BackSide
+        } );
 
         skyBoxMesh = new THREE.Mesh( skyBoxGeometry, skyBoxMaterial );
-        // skyBoxMesh.rotation.x += 200.0;
         scene.add( skyBoxMesh );
 
 
         renderer = new THREE.WebGLRenderer();
         renderer.setSize( window.innerWidth, window.innerHeight );
+
+        controls = new THREE.OrbitControls(camera, renderer.domElement);
 
         document.body.appendChild( renderer.domElement );
 
@@ -95,9 +88,10 @@ function (VertexShader, FragmentShader, Noise) {
 
         requestAnimationFrame( animate );
 
-        waterUniforms.time.value += 0.01;
+        waterUniforms.time.value += 0.02;
 
         renderer.render( scene, camera );
+        controls.update();
 
     }
 
