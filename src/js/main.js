@@ -9,9 +9,12 @@ function (VertexShader, FragmentShader, Noise, OrbitControls) {
 
     "use strict";
 
-    var camera, controls, scene, renderer;
+    var camera, controls, scene, reflScene, renderer;
     var waterGeometry, waterMaterial, waterMesh, waterUniforms;
     var skyBoxGeometry, skyBoxMaterial, skyBoxMesh;
+    var sphereMesh;
+    var directionalLight;
+    var reflectionMap;
 
     init();
     animate();
@@ -23,6 +26,51 @@ function (VertexShader, FragmentShader, Noise, OrbitControls) {
         camera.lookAt(new THREE.Vector3(100,0,0));
 
         scene = new THREE.Scene();
+        reflScene = new THREE.Scene();
+
+        reflectionMap = new THREE.WebGLRenderTarget( 
+            window.innerWidth,
+            window.innerHeight,
+            { 
+                minFilter: THREE.LinearFilter,
+                magFilter: THREE.NearestFilter,
+                format: THREE.RGBFormat
+            }
+        );
+
+        /**
+         * Grej
+         */
+        sphereMesh = new THREE.Mesh(
+            new THREE.SphereGeometry(5, 30, 30),
+            new THREE.MeshLambertMaterial( { color: 'red' } )
+        );
+        sphereMesh.position.x = 50;
+        sphereMesh.position.y = 5;
+        sphereMesh.position.z = -10;
+
+        scene.add(sphereMesh);
+
+        sphereMesh = new THREE.Mesh(
+            new THREE.SphereGeometry(10, 30, 30),
+            new THREE.MeshLambertMaterial( { color: 'green' } )
+        );
+        sphereMesh.position.x = 75;
+        sphereMesh.position.y = 10;
+        scene.add(sphereMesh);
+
+        sphereMesh = new THREE.Mesh(
+            new THREE.SphereGeometry(7.5, 30, 30),
+            new THREE.MeshLambertMaterial( { color: 'blue' } )
+        );
+        sphereMesh.position.x = 60;
+        sphereMesh.position.y = 7.5;
+        sphereMesh.position.z = 12;
+        scene.add(sphereMesh);
+
+        directionalLight = new THREE.DirectionalLight(0xffffff);
+        directionalLight.position.set(-1, 0, 0).normalize();
+        scene.add(directionalLight);
 
         /**
          * Water
@@ -30,7 +78,9 @@ function (VertexShader, FragmentShader, Noise, OrbitControls) {
         waterGeometry = new THREE.PlaneGeometry(200, 200, 1, 1);
         
         waterUniforms = {
-            time: { type: 'f', value: 1.0 }
+            time: { type: 'f', value: 1.0 },
+            reflectionMap: { type: "t", value: reflectionMap },
+            screenWH: { type: "v2", value: new THREE.Vector2( window.innerWidth, window.innerHeight ) }
         };
 
         waterMaterial = new THREE.ShaderMaterial({
@@ -71,36 +121,34 @@ function (VertexShader, FragmentShader, Noise, OrbitControls) {
 
         skyBoxMesh = new THREE.Mesh( skyBoxGeometry, skyBoxMaterial );
         scene.add( skyBoxMesh );
+        // reflScene.add( skyBoxMesh );
 
 
         renderer = new THREE.WebGLRenderer();
         renderer.setSize( window.innerWidth, window.innerHeight );
 
-        controls = new THREE.OrbitControls(camera, renderer.domElement);
+        // controls = new THREE.OrbitControls(camera, renderer.domElement);
 
         document.body.appendChild( renderer.domElement );
+    }
 
-        var flipCam = function (e) {
-            if(e.which == '32') {
+    function flipCam () {
 
-                var currentUp = new THREE.Vector3(0, 1, 0);
-                currentUp.applyQuaternion( camera.quaternion );
+        var currentUp = new THREE.Vector3(0, 1, 0);
+        currentUp.applyQuaternion( camera.quaternion );
 
-                camera.up.set(
-                    currentUp.x,
-                    -currentUp.y,
-                    currentUp.z
-                );
-                camera.position.set(
-                    camera.position.x,
-                    -camera.position.y,
-                    camera.position.z
-                );
+        camera.up.set(
+            currentUp.x,
+            -currentUp.y,
+            currentUp.z
+        );
+        camera.position.set(
+            camera.position.x,
+            -camera.position.y,
+            camera.position.z
+        );
 
-                camera.lookAt(new THREE.Vector3(100,0,0));
-            }
-        }
-        document.addEventListener("keydown", flipCam, false);
+        camera.lookAt(new THREE.Vector3(100,0,0));
     }
 
     function animate() {
@@ -109,9 +157,14 @@ function (VertexShader, FragmentShader, Noise, OrbitControls) {
 
         waterUniforms.time.value += 0.02;
 
-        renderer.render( scene, camera );
-        controls.update();
+        // render to texture
+        flipCam(); //upside down
+            renderer.render( scene, camera, reflectionMap, true );
+        flipCam(); //flip back
 
+        // render to screen
+        renderer.render( scene, camera );
+        // controls.update();
     }
 
 });
