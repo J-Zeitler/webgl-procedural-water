@@ -5,11 +5,11 @@ require([
     "../libs/orbit-controls"
 ],
 
-function (VertexShader, FragmentShader, Noise, OrbitControls) {
+function (VertexShader, FragmentShader, Noise) {
 
     "use strict";
 
-    var camera, controls, scene, reflScene, renderer;
+    var camera, secCam, controls, scene, reflScene, renderer;
     var waterGeometry, waterMaterial, waterMesh, waterUniforms;
     var skyBoxGeometry, skyBoxMaterial, skyBoxMesh;
     var sphereMesh;
@@ -39,7 +39,7 @@ function (VertexShader, FragmentShader, Noise, OrbitControls) {
         );
 
         /**
-         * Grej
+         * Objects
          */
         sphereMesh = new THREE.Mesh(
             new THREE.SphereGeometry(5, 30, 30),
@@ -99,7 +99,6 @@ function (VertexShader, FragmentShader, Noise, OrbitControls) {
         /**
          * SkyBox
          */
-        
         var imagePrefix = "textures/";
         var directions  = ["posx", "negx", "posy", "negy", "posz", "negz"];
         var imageSuffix = ".jpg";
@@ -109,6 +108,7 @@ function (VertexShader, FragmentShader, Noise, OrbitControls) {
         for (var i = 0; i < 6; i++)
             imageURLs.push( imagePrefix + directions[i] + imageSuffix );
         var textureCube = THREE.ImageUtils.loadTextureCube( imageURLs );
+        console.log(textureCube);
         var skyBoxShader = THREE.ShaderLib[ "cube" ];
         skyBoxShader.uniforms[ "tCube" ].value = textureCube;
         var skyBoxMaterial = new THREE.ShaderMaterial( {
@@ -119,36 +119,40 @@ function (VertexShader, FragmentShader, Noise, OrbitControls) {
             side: THREE.BackSide
         } );
 
+        // skyBoxMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000, wireframe: true } );
         skyBoxMesh = new THREE.Mesh( skyBoxGeometry, skyBoxMaterial );
+        
         scene.add( skyBoxMesh );
         // reflScene.add( skyBoxMesh );
 
-
         renderer = new THREE.WebGLRenderer();
         renderer.setSize( window.innerWidth, window.innerHeight );
-
-        // controls = new THREE.OrbitControls(camera, renderer.domElement);
-
+    
+        controls = new THREE.OrbitControls(camera);
+        updateReflectionCamera();
         document.body.appendChild( renderer.domElement );
     }
 
-    function flipCam () {
+    function updateReflectionCamera() {
+        secCam = camera.clone(camera);
 
         var currentUp = new THREE.Vector3(0, 1, 0);
         currentUp.applyQuaternion( camera.quaternion );
 
-        camera.up.set(
+        secCam.up.set(
             currentUp.x,
             -currentUp.y,
             currentUp.z
         );
-        camera.position.set(
+        secCam.position.set(
             camera.position.x,
             -camera.position.y,
             camera.position.z
         );
 
-        camera.lookAt(new THREE.Vector3(100,0,0));
+        var currentAt = new THREE.Vector3(0, 0, 0);
+        currentAt.applyQuaternion( camera.quaternion );
+        secCam.lookAt(currentAt);
     }
 
     function animate() {
@@ -157,14 +161,13 @@ function (VertexShader, FragmentShader, Noise, OrbitControls) {
 
         waterUniforms.time.value += 0.02;
 
+        updateReflectionCamera();
         // render to texture
-        flipCam(); //upside down
-            renderer.render( scene, camera, reflectionMap, true );
-        flipCam(); //flip back
+        renderer.render( scene, secCam, reflectionMap, true );
 
         // render to screen
         renderer.render( scene, camera );
-        // controls.update();
+        controls.update();
     }
 
 });
