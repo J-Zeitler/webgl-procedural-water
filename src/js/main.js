@@ -1,7 +1,7 @@
 require([
     "../libs/text!../shaders/water-vertex-shader.glsl",
     "../libs/text!../shaders/water-fragment-shader.glsl",
-    "../libs/text!../shaders/simplex-noise.glsl",
+    "../libs/text!../shaders/simplex-noise-3d.glsl",
     "../libs/orbit-controls"
 ],
 
@@ -78,8 +78,9 @@ function (VertexShader, FragmentShader, Noise) {
         waterGeometry = new THREE.PlaneGeometry(200, 200, 1, 1);
         
         waterUniforms = {
-            time: { type: 'f', value: 1.0 },
+            time: { type: "f", value: 1.0 },
             reflectionMap: { type: "t", value: reflectionMap },
+            viewPos: { type: "v3", value: new THREE.Vector3(0, 0, 0) },
             screenWH: { type: "v2", value: new THREE.Vector2( window.innerWidth, window.innerHeight ) }
         };
 
@@ -151,7 +152,6 @@ function (VertexShader, FragmentShader, Noise) {
         );
 
         var currentAt = new THREE.Vector3(0, 0, 0);
-        currentAt.applyQuaternion( camera.quaternion );
         secCam.lookAt(currentAt);
     }
 
@@ -159,7 +159,16 @@ function (VertexShader, FragmentShader, Noise) {
 
         requestAnimationFrame( animate );
 
+
+
+        // update viewDirection
+        var viewPos = new THREE.Vector3(
+            camera.position.x, 
+            camera.position.y,
+            camera.position.z);
+
         waterUniforms.time.value += 0.02;
+        waterUniforms.viewPos.value = viewPos;
 
         updateReflectionCamera();
         // render to texture
