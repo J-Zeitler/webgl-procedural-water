@@ -2,33 +2,47 @@ require([
     "../libs/text!../shaders/water-vertex-shader.glsl",
     "../libs/text!../shaders/water-fragment-shader.glsl",
     "../libs/text!../shaders/simplex-noise-3d.glsl",
+    "../libs/text!../shaders/bottom-vertex-shader.glsl",
+    "../libs/text!../shaders/bottom-fragment-shader.glsl",
     "../libs/orbit-controls"
 ],
 
-function (VertexShader, FragmentShader, Noise) {
+function (VertexShader, FragmentShader, Noise, BottomVertexShader, BottomFragmentShader) {
 
     "use strict";
 
-    var camera, secCam, controls, scene, reflScene, renderer;
+    var camera, secCam, controls, scene, reflScene, refrScene, renderer;
     var waterGeometry, waterMaterial, waterMesh, waterUniforms;
+    var bottomGeometry, bottomMaterial, bottomMesh, bottomMeshRefr;
     var skyBoxGeometry, skyBoxMaterial, skyBoxMesh;
     var sphereMesh;
     var directionalLight;
-    var reflectionMap;
+    var reflectionMap, refractionMap;
 
     init();
     animate();
 
     function init() {
 
-        camera = new THREE.PerspectiveCamera( 45, window.innerWidth / window.innerHeight, 1, 1000 );
+        camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 1000 );
         camera.position.set(0,10,0);
         camera.lookAt(new THREE.Vector3(100,0,0));
 
         scene = new THREE.Scene();
         reflScene = new THREE.Scene();
+        refrScene = new THREE.Scene();
 
         reflectionMap = new THREE.WebGLRenderTarget( 
+            window.innerWidth,
+            window.innerHeight,
+            { 
+                minFilter: THREE.LinearFilter,
+                magFilter: THREE.NearestFilter,
+                format: THREE.RGBFormat
+            }
+        );
+
+        refractionMap = new THREE.WebGLRenderTarget( 
             window.innerWidth,
             window.innerHeight,
             { 
@@ -49,7 +63,7 @@ function (VertexShader, FragmentShader, Noise) {
         sphereMesh.position.y = 5;
         sphereMesh.position.z = -10;
 
-        scene.add(sphereMesh);
+        // scene.add(sphereMesh);
 
         sphereMesh = new THREE.Mesh(
             new THREE.SphereGeometry(10, 30, 30),
@@ -57,7 +71,7 @@ function (VertexShader, FragmentShader, Noise) {
         );
         sphereMesh.position.x = 75;
         sphereMesh.position.y = 10;
-        scene.add(sphereMesh);
+        // scene.add(sphereMesh);
 
         sphereMesh = new THREE.Mesh(
             new THREE.SphereGeometry(7.5, 30, 30),
@@ -66,7 +80,7 @@ function (VertexShader, FragmentShader, Noise) {
         sphereMesh.position.x = 60;
         sphereMesh.position.y = 7.5;
         sphereMesh.position.z = 12;
-        scene.add(sphereMesh);
+        // scene.add(sphereMesh);
 
         directionalLight = new THREE.DirectionalLight(0xffffff);
         directionalLight.position.set(-1, 0, 0).normalize();
@@ -76,10 +90,12 @@ function (VertexShader, FragmentShader, Noise) {
          * Water
          */
         waterGeometry = new THREE.PlaneGeometry(200, 200, 1, 1);
+        // waterNormalMap = new THREE.ImageUtils.loadTexture("textures/water-normal-map.jpg");
         
         waterUniforms = {
             time: { type: "f", value: 1.0 },
             reflectionMap: { type: "t", value: reflectionMap },
+            refractionMap: { type: "t", value: refractionMap },
             viewPos: { type: "v3", value: new THREE.Vector3(0, 0, 0) },
             screenWH: { type: "v2", value: new THREE.Vector2( window.innerWidth, window.innerHeight ) }
         };
@@ -96,6 +112,27 @@ function (VertexShader, FragmentShader, Noise) {
         waterMesh = new THREE.Mesh( waterGeometry, waterMaterial );
         waterMesh.rotation.x = Math.PI*3/2;
         scene.add( waterMesh );
+
+        /**
+         * Bottom
+         */
+        bottomGeometry = new THREE.PlaneGeometry(200, 200, 100, 100);
+
+        bottomMaterial = new THREE.ShaderMaterial({
+            uniforms: {},
+            vertexShader: Noise + BottomVertexShader,
+            fragmentShader: Noise + BottomFragmentShader
+        });
+
+        bottomMesh = new THREE.Mesh( bottomGeometry, bottomMaterial );
+        bottomMesh.rotation.x = Math.PI*3/2;
+        bottomMesh.position.y = -10;
+        scene.add( bottomMesh );
+
+        bottomMeshRefr = new THREE.Mesh( bottomGeometry, bottomMaterial );
+        bottomMeshRefr.rotation.x = Math.PI*3/2;
+        bottomMeshRefr.position.y = -10;
+        refrScene.add( bottomMeshRefr );
 
         /**
          * SkyBox
@@ -122,12 +159,11 @@ function (VertexShader, FragmentShader, Noise) {
 
         // skyBoxMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000, wireframe: true } );
         skyBoxMesh = new THREE.Mesh( skyBoxGeometry, skyBoxMaterial );
-        
-        scene.add( skyBoxMesh );
-        // reflScene.add( skyBoxMesh );
+        reflScene.add( skyBoxMesh );
 
         renderer = new THREE.WebGLRenderer();
         renderer.setSize( window.innerWidth, window.innerHeight );
+        renderer.setClearColor( 0xffffff, 1);
     
         controls = new THREE.OrbitControls(camera);
         updateReflectionCamera();
@@ -159,8 +195,6 @@ function (VertexShader, FragmentShader, Noise) {
 
         requestAnimationFrame( animate );
 
-
-
         // update viewDirection
         var viewPos = new THREE.Vector3(
             camera.position.x, 
@@ -171,8 +205,11 @@ function (VertexShader, FragmentShader, Noise) {
         waterUniforms.viewPos.value = viewPos;
 
         updateReflectionCamera();
-        // render to texture
+        // render to reflection texture
         renderer.render( scene, secCam, reflectionMap, true );
+
+        // render to refraction texture
+        renderer.render( refrScene, camera, refractionMap, true );
 
         // render to screen
         renderer.render( scene, camera );
