@@ -5,6 +5,7 @@ varying vec3 vUv;
 varying vec4 curvePos;
 
 void main() {
+    // if(curvePos.y < 0.0) discard;
 
     vec3 noiseSeedL = vec3(vUv.x*0.3, vUv.y*0.1, 1.0);
     vec3 noiseSeedS = vec3(vUv.x*0.9, vUv.y*0.3, 1.0);
@@ -23,9 +24,11 @@ void main() {
     	clamp(noise, 0.0, 1.0)
 	);
 
-    gl_FragColor = mix(
+    vec4 finalMix = mix(
     	bottomColor,
     	groundColor,
     	clamp(curvePos.y, 0.0, 20.0) * 0.05
 	);
+
+    gl_FragColor = finalMix;
 }

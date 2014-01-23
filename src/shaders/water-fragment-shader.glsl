@@ -13,8 +13,8 @@ void main() {
     float epsilon = 0.01;
     float xScale = 0.05;
     float yScale = 0.1;
-    float velocity1 = 0.4;
-    float velocity2 = 0.2;
+    float velocity1 = 0.7;
+    float velocity2 = 0.3;
     float turbulence1 = 0.2;
     float turbulence2 = 0.5;
     float waveScale1 = .6;
@@ -59,28 +59,27 @@ void main() {
     
     // clip coord -> perspective divide ([-1, -1]) -> [0,1]
     vec2 screenCoordRefl = vec2(
-        1.0 - (0.5 * pos.x/pos.z + 0.5), //refl map is flipped
+        1.0 - (0.5 * pos.x/pos.z + 0.5), //refl map is flipped in screen.x
         0.5 * pos.y/pos.z + 0.5
     );
 
     vec2 screenCoordRefr = vec2(
-        0.5 * pos.x/pos.z + 0.5,
+        0.5 * pos.x/pos.z + 0.5, //refr map is not
         0.5 * pos.y/pos.z + 0.5
     );
 
     vec4 reflColor = texture2D(reflectionMap, screenCoordRefl+ripples/pos.z);
     vec4 refrColor = texture2D(refractionMap, screenCoordRefr+ripples/pos.z);
-    
+
     // THREE defines up as y
     gradient = vec3(gradient.x, -gradient.z, gradient.y);
     vec3 viewDir = normalize(pos3d.xyz - viewPos);
 
     float fresnelTerm = dot(gradient, viewDir);
-    // lerp
+
     vec4 fresneldColor = (1.0 - fresnelTerm) * reflColor + fresnelTerm * refrColor;
     vec4 waterColor = vec4(0.3, 0.3, 0.5, 1.0);
+
     gl_FragColor = 0.8 * fresneldColor + 0.2 * waterColor;
 
-    
-    // gl_FragColor = vec4(gradient, 1.0);
 }

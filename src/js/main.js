@@ -7,14 +7,19 @@ require([
     "../libs/orbit-controls"
 ],
 
-function (VertexShader, FragmentShader, Noise, BottomVertexShader, BottomFragmentShader) {
+function (
+    VertexShader,
+    FragmentShader,
+    Noise,
+    BottomVertexShader, 
+    BottomFragmentShader) {
 
     "use strict";
 
     var camera, secCam, controls, scene, reflScene, refrScene, renderer;
     var waterGeometry, waterMaterial, waterMesh, waterUniforms;
     var bottomGeometry, bottomMaterial, bottomMesh, bottomMeshRefr;
-    var skyBoxGeometry, skyBoxMaterial, skyBoxMesh;
+    var skyBoxGeometry, skyBoxMaterial, skyBoxMesh, skyBoxMeshRefr;
     var sphereMesh;
     var directionalLight;
     var reflectionMap, refractionMap;
@@ -24,12 +29,12 @@ function (VertexShader, FragmentShader, Noise, BottomVertexShader, BottomFragmen
 
     function init() {
 
-        camera = new THREE.PerspectiveCamera( 75, window.innerWidth / window.innerHeight, 1, 1000 );
-        camera.position.set(0,10,0);
-        camera.lookAt(new THREE.Vector3(100,0,0));
+        camera = new THREE.PerspectiveCamera( 60, window.innerWidth / window.innerHeight, 1, 5000 );
+        camera.position.set(-120,100,200);
+        camera.lookAt(new THREE.Vector3(0,0,0));
 
         scene = new THREE.Scene();
-        reflScene = new THREE.Scene();
+        // reflScene = new THREE.Scene();
         refrScene = new THREE.Scene();
 
         reflectionMap = new THREE.WebGLRenderTarget( 
@@ -56,41 +61,38 @@ function (VertexShader, FragmentShader, Noise, BottomVertexShader, BottomFragmen
          * Objects
          */
         sphereMesh = new THREE.Mesh(
-            new THREE.SphereGeometry(5, 30, 30),
+            new THREE.SphereGeometry(10, 30, 30),
             new THREE.MeshLambertMaterial( { color: 'red' } )
         );
-        sphereMesh.position.x = 50;
-        sphereMesh.position.y = 5;
-        sphereMesh.position.z = -10;
-
-        // scene.add(sphereMesh);
+        sphereMesh.position.y = 15;
+        scene.add(sphereMesh);
 
         sphereMesh = new THREE.Mesh(
-            new THREE.SphereGeometry(10, 30, 30),
+            new THREE.SphereGeometry(15, 30, 30),
             new THREE.MeshLambertMaterial( { color: 'green' } )
         );
-        sphereMesh.position.x = 75;
-        sphereMesh.position.y = 10;
-        // scene.add(sphereMesh);
+        sphereMesh.position.x = 50;
+        sphereMesh.position.y = 30;
+        sphereMesh.position.z = 40;
+        scene.add(sphereMesh);
 
-        sphereMesh = new THREE.Mesh(
-            new THREE.SphereGeometry(7.5, 30, 30),
-            new THREE.MeshLambertMaterial( { color: 'blue' } )
-        );
-        sphereMesh.position.x = 60;
-        sphereMesh.position.y = 7.5;
-        sphereMesh.position.z = 12;
-        // scene.add(sphereMesh);
+        // sphereMesh = new THREE.Mesh(
+        //     new THREE.SphereGeometry(7.5, 30, 30),
+        //     new THREE.MeshLambertMaterial( { color: 'blue' } )
+        // );
+        // sphereMesh.position.x = 60;
+        // sphereMesh.position.y = 7.5;
+        // sphereMesh.position.z = 12;
+        // // scene.add(sphereMesh);
 
         directionalLight = new THREE.DirectionalLight(0xffffff);
-        directionalLight.position.set(-1, 0, 0).normalize();
+        directionalLight.position.set(20.0, 100.0, 0).normalize();
         scene.add(directionalLight);
 
         /**
          * Water
          */
-        waterGeometry = new THREE.PlaneGeometry(200, 200, 1, 1);
-        // waterNormalMap = new THREE.ImageUtils.loadTexture("textures/water-normal-map.jpg");
+        waterGeometry = new THREE.PlaneGeometry(100, 200, 1, 1);
         
         waterUniforms = {
             time: { type: "f", value: 1.0 },
@@ -105,9 +107,6 @@ function (VertexShader, FragmentShader, Noise, BottomVertexShader, BottomFragmen
             vertexShader: VertexShader,
             fragmentShader: Noise + FragmentShader
         });
-
-        //wireframe
-        // waterMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000, wireframe: true } );
 
         waterMesh = new THREE.Mesh( waterGeometry, waterMaterial );
         waterMesh.rotation.x = Math.PI*3/2;
@@ -137,29 +136,32 @@ function (VertexShader, FragmentShader, Noise, BottomVertexShader, BottomFragmen
         /**
          * SkyBox
          */
-        var imagePrefix = "textures/";
-        var directions  = ["posx", "negx", "posy", "negy", "posz", "negz"];
-        var imageSuffix = ".jpg";
-        var skyBoxGeometry = new THREE.CubeGeometry( 200, 200, 200 );
+        // var imagePrefix = "textures/";
+        // var directions  = ["posx", "negx", "posy", "negy", "posz", "negz"];
+        // var imageSuffix = ".jpg";
+        // var skyBoxGeometry = new THREE.CubeGeometry( 2000, 2000, 2000 );
         
-        var imageURLs = [];
-        for (var i = 0; i < 6; i++)
-            imageURLs.push( imagePrefix + directions[i] + imageSuffix );
-        var textureCube = THREE.ImageUtils.loadTextureCube( imageURLs );
-        console.log(textureCube);
-        var skyBoxShader = THREE.ShaderLib[ "cube" ];
-        skyBoxShader.uniforms[ "tCube" ].value = textureCube;
-        var skyBoxMaterial = new THREE.ShaderMaterial( {
-            fragmentShader: skyBoxShader.fragmentShader,
-            vertexShader: skyBoxShader.vertexShader,
-            uniforms: skyBoxShader.uniforms,
-            depthWrite: false,
-            side: THREE.BackSide
-        } );
+        // var imageURLs = [];
+        // for (var i = 0; i < 6; i++)
+        //     imageURLs.push( imagePrefix + directions[i] + imageSuffix );
+        // var textureCube = THREE.ImageUtils.loadTextureCube( imageURLs );
+        // console.log(textureCube);
+        // var skyBoxShader = THREE.ShaderLib[ "cube" ];
+        // skyBoxShader.uniforms[ "tCube" ].value = textureCube;
+        // var skyBoxMaterial = new THREE.ShaderMaterial( {
+        //     fragmentShader: skyBoxShader.fragmentShader,
+        //     vertexShader: skyBoxShader.vertexShader,
+        //     uniforms: skyBoxShader.uniforms,
+        //     depthWrite: false,
+        //     side: THREE.BackSide
+        // } );
 
-        // skyBoxMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000, wireframe: true } );
-        skyBoxMesh = new THREE.Mesh( skyBoxGeometry, skyBoxMaterial );
-        reflScene.add( skyBoxMesh );
+        // // skyBoxMaterial = new THREE.MeshBasicMaterial( { color: 0xff0000, wireframe: true } );
+        // skyBoxMesh = new THREE.Mesh( skyBoxGeometry, skyBoxMaterial );
+        // scene.add( skyBoxMesh );
+
+        // skyBoxMeshRefr = new THREE.Mesh( skyBoxGeometry, skyBoxMaterial );
+        // refrScene.add( skyBoxMeshRefr );
 
         renderer = new THREE.WebGLRenderer();
         renderer.setSize( window.innerWidth, window.innerHeight );
@@ -204,8 +206,8 @@ function (VertexShader, FragmentShader, Noise, BottomVertexShader, BottomFragmen
         waterUniforms.time.value += 0.02;
         waterUniforms.viewPos.value = viewPos;
 
-        updateReflectionCamera();
         // render to reflection texture
+        updateReflectionCamera();
         renderer.render( scene, secCam, reflectionMap, true );
 
         // render to refraction texture
